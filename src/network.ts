@@ -2,21 +2,21 @@
  * Network configuration utilities
  */
 
-import { StacksMainnet, StacksTestnet, StacksDevnet } from '@stacks/network';
+import { STACKS_MAINNET, STACKS_TESTNET, STACKS_DEVNET, StacksNetwork } from '@stacks/network';
 
 export type NetworkType = 'mainnet' | 'testnet' | 'devnet';
 
 /**
  * Get Stacks network instance by type
  */
-export function getNetwork(type: NetworkType = 'mainnet') {
+export function getNetwork(type: NetworkType = 'mainnet'): StacksNetwork {
   switch (type) {
     case 'mainnet':
-      return new StacksMainnet();
+      return STACKS_MAINNET;
     case 'testnet':
-      return new StacksTestnet();
+      return STACKS_TESTNET;
     case 'devnet':
-      return new StacksDevnet();
+      return STACKS_DEVNET;
     default:
       throw new Error(`Unknown network type: ${type}`);
   }

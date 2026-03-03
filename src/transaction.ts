@@ -5,10 +5,7 @@
 import {
   makeSTXTokenTransfer,
   broadcastTransaction,
-  AnchorMode,
-  estimateTransfer,
-  getNonce,
-  makeContractCall,
+  SignedTokenTransferOptions,
 } from '@stacks/transactions';
 import { StacksNetwork } from '@stacks/network';
 
@@ -21,30 +18,34 @@ export interface STXTransferParams {
   fee?: number;
 }
 
+// API URLs for different networks
+const API_URLS: Record<string, string> = {
+  mainnet: 'https://api.mainnet.hiro.so',
+  testnet: 'https://api.testnet.hiro.so',
+};
+
+function getApiUrl(network: StacksNetwork): string {
+  const chainId = network.chainId;
+  return chainId === 1 ? API_URLS.mainnet : API_URLS.testnet;
+}
+
 /**
  * Send STX tokens
  */
 export async function sendSTX(params: STXTransferParams) {
   const { recipient, amount, senderKey, network, memo, fee } = params;
 
-  const txOptions: any = {
+  const txOptions: SignedTokenTransferOptions = {
     recipient,
-    amount,
+    amount: BigInt(amount),
     senderKey,
     network,
-    anchorMode: AnchorMode.Any,
+    memo: memo,
+    fee: fee ? BigInt(fee) : undefined,
   };
 
-  if (memo) {
-    txOptions.memo = memo;
-  }
-
-  if (fee) {
-    txOptions.fee = fee;
-  }
-
   const transaction = await makeSTXTokenTransfer(txOptions);
-  const broadcastResponse = await broadcastTransaction(transaction, network);
+  const broadcastResponse = await broadcastTransaction({ transaction });
 
   return {
     txId: broadcastResponse.txid,
@@ -53,25 +54,16 @@ export async function sendSTX(params: STXTransferParams) {
 }
 
 /**
- * Estimate transaction fee for STX transfer
- */
-export async function estimateSTXTransferFee(
-  network: StacksNetwork,
-  amount: number
-): Promise<number> {
-  const estimation = await estimateTransfer({} as any);
-  return Number(estimation);
-}
-
-/**
- * Get account nonce
+ * Get account nonce from API
  */
 export async function getAccountNonce(
   address: string,
   network: StacksNetwork
 ): Promise<number> {
-  const nonce = await getNonce(address, network);
-  return Number(nonce);
+  const apiUrl = getApiUrl(network);
+  const response = await fetch(`${apiUrl}/extended/v1/address/${address}/nonces`);
+  const data = await response.json() as { possible_next_nonce: number };
+  return data.possible_next_nonce;
 }
 
 /**
@@ -82,13 +74,13 @@ export async function waitForTransaction(
   network: StacksNetwork,
   maxAttempts: number = 30,
   intervalMs: number = 10000
-): Promise<any> {
-  const apiUrl = network.coreApiUrl;
+): Promise<{ status: string; data?: any }> {
+  const apiUrl = getApiUrl(network);
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const response = await fetch(`${apiUrl}/extended/v1/tx/${txId}`);
-      const data = await response.json();
+      const data = await response.json() as { tx_status: string };
 
       if (data.tx_status === 'success') {
         return { status: 'success', data };
@@ -112,9 +104,9 @@ export async function getTransactionStatus(
   txId: string,
   network: StacksNetwork
 ): Promise<string> {
-  const apiUrl = network.coreApiUrl;
+  const apiUrl = getApiUrl(network);
   const response = await fetch(`${apiUrl}/extended/v1/tx/${txId}`);
-  const data = await response.json();
+  const data = await response.json() as { tx_status: string };
   return data.tx_status;
 }
 

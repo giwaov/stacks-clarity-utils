@@ -6,9 +6,9 @@ import {
   makeContractCall,
   makeContractDeploy,
   broadcastTransaction,
-  AnchorMode,
   PostConditionMode,
-  ContractCallOptions,
+  SignedContractCallOptions,
+  SignedContractDeployOptions,
 } from '@stacks/transactions';
 import { StacksNetwork } from '@stacks/network';
 
@@ -46,7 +46,7 @@ export async function executeContractCall(params: ContractCallParams) {
     fee,
   } = params;
 
-  const txOptions: ContractCallOptions = {
+  const txOptions: SignedContractCallOptions = {
     contractAddress,
     contractName,
     functionName,
@@ -55,15 +55,11 @@ export async function executeContractCall(params: ContractCallParams) {
     network,
     postConditions,
     postConditionMode: PostConditionMode.Deny,
-    anchorMode: AnchorMode.Any,
+    fee: fee ? BigInt(fee) : undefined,
   };
 
-  if (fee) {
-    txOptions.fee = fee;
-  }
-
   const transaction = await makeContractCall(txOptions);
-  const broadcastResponse = await broadcastTransaction(transaction, network);
+  const broadcastResponse = await broadcastTransaction({ transaction });
 
   return {
     txId: broadcastResponse.txid,
@@ -77,20 +73,16 @@ export async function executeContractCall(params: ContractCallParams) {
 export async function deployContract(params: ContractDeployParams) {
   const { contractName, codeBody, senderKey, network, fee } = params;
 
-  const txOptions: any = {
+  const txOptions: SignedContractDeployOptions = {
     contractName,
     codeBody,
     senderKey,
     network,
-    anchorMode: AnchorMode.Any,
+    fee: fee ? BigInt(fee) : undefined,
   };
 
-  if (fee) {
-    txOptions.fee = fee;
-  }
-
   const transaction = await makeContractDeploy(txOptions);
-  const broadcastResponse = await broadcastTransaction(transaction, network);
+  const broadcastResponse = await broadcastTransaction({ transaction });
 
   return {
     txId: broadcastResponse.txid,
