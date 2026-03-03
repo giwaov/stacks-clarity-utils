@@ -1,6 +1,6 @@
 {
   "name": "stacks-clarity-utils",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript utilities for Stacks blockchain development - contract interactions, Clarity helpers, and transaction builders",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
